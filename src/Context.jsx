@@ -67,7 +67,7 @@ function RoomProvider({ children }) {
     //   maxSize: maxSize,
     // });
     getData();
-  }, [])
+  }, [getData])
 
   function formatData(items) {
     let tempItems = items.map(item => {
@@ -99,7 +99,7 @@ function RoomProvider({ children }) {
 
   useEffect(() => {
     filterRooms();
-  }, [data.type, data.capacity, data.price, data.minSize, data.maxSize, data.breakfast, data.pets]);
+  }, [filterRooms,data.type, data.capacity, data.price, data.minSize, data.maxSize, data.breakfast, data.pets]);
 
   function filterRooms() {
     let flag = false;
