@@ -49,7 +49,7 @@ export default function SingleRoom(props) {
 						<h3>Info</h3>
 						<h6>Price : ${price}</h6>
 						<h6>Size : {size} SQFT</h6>
-						<h6>Max-capacity : {capacity} {capacity == 1 ? 'person' : 'People'}</h6>
+						<h6>Max-capacity : {capacity} {capacity === 1 ? 'person' : 'People'}</h6>
 						<h6>{pets ? 'Pets Allowed' : 'No Pets Allowed'}</h6>
 						<h6>{breakfast && 'Free Breakfast'}</h6>
 					</article>

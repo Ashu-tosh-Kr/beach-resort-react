@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import items from './data.js'
+//import items from './data.js';
+import Client from './Contentful';
+
 
 const RoomContext = React.createContext();
 
@@ -9,25 +11,69 @@ function RoomProvider({ children }) {
     rooms: [],
     sortedRooms: [],
     featuredRooms: [],
-    loading: true
+    loading: true,
+    type: 'all',
+    capacity: 1,
+    price: 0,
+    minPrice: 0,
+    maxPrice: 0,
+    minSize: 0,
+    maxSize: 0,
+    pets: false,
+    breakfast: false,
   });
 
-  useEffect(()=> {
-    let rooms = formatData(items);
-    let featuredRooms = rooms.filter(room => room.featured);
-    setData({
-      rooms: rooms,
-      featuredRooms: featuredRooms,
-      sortedRooms:rooms,
-      loading: false
-    })
-  },[])
+  async function getData() {
+    try {
+      let res = await Client.getEntries({
+        content_type: 'beachResortRoom',
+        order: 'fields.price',
+      });
+
+      let rooms = formatData(res.items);
+      let featuredRooms = rooms.filter(room => room.featured);
+      let maxPrice = Math.max(...rooms.map(item => item.price));
+      let maxSize = Math.max(...rooms.map(item => item.size));
+
+      setData({
+        ...data,
+        rooms: rooms,
+        featuredRooms: featuredRooms,
+        sortedRooms: rooms,
+        loading: false,
+        price: maxPrice,
+        maxPrice: maxPrice,
+        maxSize: maxSize,
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  useEffect(() => {
+    // let rooms = formatData(items);
+    // let featuredRooms = rooms.filter(room => room.featured);
+    // let maxPrice = Math.max(...rooms.map(item => item.price));
+    // let maxSize = Math.max(...rooms.map(item => item.size));
+
+    // setData({
+    //   ...data,
+    //   rooms: rooms,
+    //   featuredRooms: featuredRooms,
+    //   sortedRooms: rooms,
+    //   loading: false,
+    //   price: maxPrice,
+    //   maxPrice: maxPrice,
+    //   maxSize: maxSize,
+    // });
+    getData();
+  }, [])
 
   function formatData(items) {
     let tempItems = items.map(item => {
       let id = item.sys.id;
       let images = item.fields.images.map(img => img.fields.file.url);
-      let room = {...item.fields, images:images, id};
+      let room = { ...item.fields, images: images, id };
       return room;
     })
     return tempItems;
@@ -35,12 +81,94 @@ function RoomProvider({ children }) {
 
   function getRoom(slug) {
     const tempRooms = [...data.rooms];
-    const room = tempRooms.find(room => room.slug===slug);
+    const room = tempRooms.find(room => room.slug === slug);
     return room;
   }
 
+  function handleChange(e) {
+    const target = e.target;
+    const name = target.name;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+
+    setData({
+      ...data,
+      [name]: value,
+    });
+
+  }
+
+  useEffect(() => {
+    filterRooms();
+  }, [data.type, data.capacity, data.price, data.minSize, data.maxSize, data.breakfast, data.pets]);
+
+  function filterRooms() {
+    let flag = false;
+
+    let {
+      rooms,
+      type,
+      capacity,
+      price,
+      minSize,
+      maxSize,
+      pets,
+      breakfast,
+    } = data;
+
+    //Making a mutable copy
+    let tempRooms = [...rooms];
+    //Changing capacity to num
+    capacity = +capacity;
+    //Changing price to num
+    price = +price;
+
+    //Filter by type
+    if (type !== 'all') {
+      tempRooms = tempRooms.filter((room) => room.type === type);
+      flag = true;
+    }
+
+    //Filter by capacity
+    if (capacity !== 1) {
+      tempRooms = tempRooms.filter((room) => room.capacity >= capacity);
+      flag = true;
+    }
+
+    //Filter by price
+    if (price !== 0) {
+      tempRooms = tempRooms.filter((room) => room.price <= price);
+      flag = true;
+    }
+
+    //Filter by size
+    if (minSize !== 0 && maxSize !== 0) {
+      tempRooms = tempRooms.filter((room) => room.size >= minSize && room.size <= maxSize);
+      flag = true;
+    }
+
+    //Filter by breakfast
+    if (breakfast) {
+      tempRooms = tempRooms.filter((room) => room.breakfast === true);
+      flag = true;
+    }
+
+    //Filter by pets
+    if (pets) {
+      tempRooms = tempRooms.filter((room) => room.pets === true);
+      flag = true;
+    }
+
+    if (flag) {
+      setData({
+        ...data,
+        sortedRooms: tempRooms,
+      })
+    }
+  }
+
+
   return (
-    <RoomContext.Provider value={{...data,getRoom:getRoom}}>
+    <RoomContext.Provider value={{ ...data, getRoom: getRoom, handleChange }}>
       {children}
     </RoomContext.Provider>
   )
